@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+<h2>Товары</h2>
+
+
+{% for product in products %}
+    <div>
+        <h3>{{ product.name }}</h3>
+        <p>{{ product.description }}</p>
+        <b>{{ product.price }} ₸</b>
+    </div>  
+    <hr>
+{% empty %}
+    <p>Товаров пока нет</p>
+{% endfor %}
+
+
+{% endblock %}
