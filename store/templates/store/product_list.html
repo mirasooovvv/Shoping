@@ -1,27 +1,47 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
 
-    <h2>Товары</h2>
-    
-    <div class="row">
-        {% for product in products %}
-        <div class="col-md-4 mb-4">
-            <div class="card" style="width: 18rem;">
-                <div class="card-body">
-                      <h5 class="card-title">Tovar:
-                          <a href="{% url 'product_detail' product.id %}"> {{ product.name }}</a>
-                      </h5>
-                      <p class="card-text">Описание: {{ product.description }}</p>
-                    <h3><a class="nav-link" href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
-                    <b><card-text>Цена: {{ product.price}}</b>
-                </div>
-            </div>  
+<h2 class="mb-4">Товары</h2>
 
-        {% empty %}
-            <p>Товаров пока нет</p>
-        {% endfor %}
-    </div>
+<div class="row g-4">
+    {% for product in products %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 shadow-sm border-0">
+
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title fw-bold">
+                        <a href="{% url 'product_detail' product.id %}"
+                           class="text-decoration-none text-dark">
+                            {{ product.name }}
+                        </a>
+                    </h5>
+
+                    <p class="card-text text-muted small">
+                        {{ product.description|truncatechars:80 }}
+                    </p>
+
+                    <div class="mt-auto">
+                        <p class="fw-bold mb-2">
+                             {{ product.price }} ₸
+                        </p>
+
+                        <a href="{% url 'product_detail' product.id %}"
+                           class="btn btn-primary w-100">
+                            Подробнее
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                Товаров пока нет
+            </div>
+        </div>
+    {% endfor %}
+</div>
 
 {% endblock %}
-

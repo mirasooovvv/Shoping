@@ -1,17 +1,45 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block content %}
-  <h1>{{ product.name }}</h1>
 
-  <p>
-    <strong>Описание:</strong><br />
-    {{ product.description }}
-  </p>
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
 
-  <p>
-    <strong>Цена:</strong> {{ product.price }} Тенге
-  </p>
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4 p-md-5">
 
-  <p>
-    <a href="{% url 'product_list' %}">Назад к товарам</a>
-  </p>
+                <!-- Название -->
+                <h2 class="fw-bold mb-3">{{ product.name }}</h2>
+
+                <!-- Цена -->
+                <h4 class="text-primary fw-bold mb-4">
+                     {{ product.price }} ₸
+                </h4>
+
+                <!-- Описание -->
+                <p class="text-muted mb-4" style="line-height: 1.7;">
+                    {{ product.description }}
+                </p>
+
+                <!-- Actions -->
+                <div class="d-flex flex-wrap gap-3">
+
+                    <a href="{% url 'add_to_cart' product.id %}"
+                       class="btn btn-primary px-4">
+                         Добавить в корзину
+                    </a>
+
+                    <a href="{% url 'product_list' %}"
+                       class="btn btn-outline-secondary px-4">
+                        ← Назад к товарам
+                    </a>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
 {% endblock %}

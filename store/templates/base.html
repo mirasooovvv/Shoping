@@ -1,56 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Простой магазин</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-dark" style="background-color: #e3f2fd;">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'product_list' %}" style="color: white;">Простой магазин</a>
-        <div class="navbar-nav">
-          <a class="nav-link" href="{% url 'product_list' %}" style="color: white;">Товары</a>
-          <a class="nav-link" href="{% url 'about' %}" style="color: white;">О нас</a>
-          <a class="nav-link" href="{% url 'product_list' %}" style="color: white;">Главная</a>
-        </div>
-      </div>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Простой магазин</title>
 
-      {% if user.is_authenticated %}
-        <div class="collapse navbar-collapse">
-          <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}</button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-              <li>
-                <a class="dropdown-item" href="/logout">Logout</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      {% else %}
-        <a class="nav-link" style="color: white;" href="/login">Войти</a> 
-      {% endif %}
+  <!-- Bootstrap 5 -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
 
-      <a class="nav-link" style="color: white;" href="#">Корзина</a>
-      <a class="nav-link" style="color: white;" href="#">Мой магазин</a>
+  <!-- Bootstrap Icons -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+</head>
 
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto">
-          <li>
-            <a class="nav-link" style="color: white;" href="{% url 'about' %}">О магазине</a>
-          </li>
-        </ul>
-      </div>
-    </nav>
+<body class="bg-light">
 
-    <hr />
-    <div class="container">
-      {% block content %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container">
 
-      {% endblock %}
+    
+    <a class="navbar-brand fw-bold" href="{% url 'product_list' %}">
+      Мой магазин
+    </a>
+
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    
+    <div class="collapse navbar-collapse" id="navbarMain">
+
+      
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'product_list' %}">Товары</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'about' %}">О нас</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Мой магазин</a>
+        </li>
+      </ul>
+
+      
+      <ul class="navbar-nav ms-auto align-items-center">
+
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="#">
+            <i class="bi bi-cart"></i> Корзина
+            <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
+              0
+            </span>
+          </a>
+        </li>
+
+        {% if user.is_authenticated %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle"></i> {{ user.username }}
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#">Профиль</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                Выйти
+              </a>
+            </li>
+          </ul>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a class="btn btn-outline-light ms-2" href="{% url 'login' %}">
+            Войти
+          </a>
+        </li>
+        {% endif %}
+
+      </ul>
     </div>
+  </div>
+</nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-  </body>
+<main class="container my-4">
+  {% block content %}
+  {% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
