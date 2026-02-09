@@ -183,6 +183,7 @@ def view_cart(request):
         items = cart.items.all()
         total_price = sum(item.get_total_price() for item in items)
 
+<<<<<<< HEAD
         return render(request, "cart/cart.html", {
             "cart": cart,
             "items": items,
@@ -204,6 +205,9 @@ def view_cart(request):
                 'total_price': total,
             })
             total_price += total
+=======
+    items = CartItem.objects.filter(cart=cart)
+>>>>>>> 3e8f6cde7d8fabcbdaea845680eb15ab5cba5f58
 
         return render(request, "cart/cart.html", {
             "cart": None,
@@ -234,6 +238,7 @@ def add_to_cart(request, product_id):
 
     return redirect("view_cart")
 
+<<<<<<< HEAD
 
 def cart_sidebar(request):
     """Return cart HTML fragment for offcanvas sidebar."""
@@ -269,3 +274,34 @@ def cart_sidebar(request):
         }
 
     return render(request, 'cart/_cart_sidebar.html', context)
+=======
+@login_required
+def remove_from_cart(request, product_id):
+    cart = Cart.objects.get(user=request.user)
+    try:
+        item = CartItem.objects.get(cart=cart, product_id=product_id)
+        item.delete()
+    except CartItem.DoesNotExist:
+        pass
+    return redirect('view_cart')
+
+@login_required
+def update_cart_item(request, product_id):
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+    item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
+    action = request.GET.get('action')  # было 'actions'
+
+    if action == "inc":
+        item.quantity += 1
+        item.save()
+    elif action == "dec":
+        item.quantity -= 1
+        if item.quantity <= 0:
+            item.delete()
+        else:
+            item.save()
+            
+    return redirect('view_cart')
+
+
+>>>>>>> 3e8f6cde7d8fabcbdaea845680eb15ab5cba5f58
