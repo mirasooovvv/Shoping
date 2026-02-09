@@ -1,0 +1,42 @@
+{% load static %}
+
+<div class="container py-4">
+  <h3>Оплата товара</h3>
+
+  {% if product %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">{{ product.name }}</h5>
+        <p class="card-text">Цена: {{ product.price }} ₸</p>
+        <a href="{{ confirmation_url }}" class="btn btn-success">Продолжить к оплате</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if items %}
+    <h4>Товары для оплаты</h4>
+    <ul class="list-group mb-3">
+      {% for item in items %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ item.product.name }}</strong>
+            <div class="text-muted">Кол-во: {{ item.quantity }}</div>
+          </div>
+          <div>
+            <span class="me-3">
+              {% if item.get_total_price %}
+                {{ item.get_total_price }} ₸
+              {% else %}
+                {{ item.total_price }} ₸
+              {% endif %}
+            </span>
+            <a href="{% url 'create_payment' item.product.id %}" class="btn btn-sm btn-outline-success">Оплатить</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="fw-bold">Общая: {{ total_price }} ₸</p>
+    <a href="{% url 'create_payment_cart' %}" class="btn btn-primary">Оплатить всё</a>
+  {% endif %}
+</div>
+

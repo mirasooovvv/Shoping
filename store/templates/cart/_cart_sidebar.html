@@ -1,0 +1,59 @@
+{% load static %}
+
+{% if items %}
+    <div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Товар</th>
+                    <th>Цена</th>
+                    <th>Кол-во</th>
+                    <th>Итого</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'product_detail' item.product.id %}">{{ item.product.name }}</a>
+                        </td>
+                        <td>{{ item.product.price }} ₸</td>
+                        <td>
+                            {% if item.quantity %}
+                                {{ item.quantity }}
+                            {% else %}
+                                {{ item.quantity }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.get_total_price %}
+                                {{ item.get_total_price }} ₸
+                            {% else %}
+                                {{ item.total_price }} ₸
+                            {% endif %}
+                        </td>
+                        <td>
+                           <a href="{% url 'create_payment' item.product.id %}" class="btn btn-success btn-sm">
+    Оплатит
+</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="fw-bold">Общая: {{ total_price }} ₸</p>
+
+        
+        <span id="cart-item-count" style="display:none">{{ items|length }}</span>
+
+        <a href="{% url 'view_cart' %}" class="btn btn-primary w-100">Перейти в корзину</a>
+    </div>
+{% else %}
+    <div class="text-center">
+        <p class="mb-3">Ваша корзина пуста.</p>
+        <a href="{% url 'product_list' %}" class="btn btn-outline-primary">Вернуться к покупкам</a>
+        <span id="cart-item-count" style="display:none">0</span>
+    </div>
+{% endif %}

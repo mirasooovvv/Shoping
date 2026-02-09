@@ -1,1 +1,47 @@
-<h1>asdasd</h1>
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Корзина</h2>
+
+{% if items %}
+	<div class="table-responsive">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Товар</th>
+					<th>Цена</th>
+					<th>Количество</th>
+					<th>Итого</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in items %}
+					<tr>
+						<td>
+							<a href="{% url 'product_detail' item.product.id %}">
+								{{ item.product.name }}
+							</a>
+						</td>
+						<td>{{ item.product.price }} ₸</td>
+						<td>{{ item.quantity }}</td>
+						<td>
+							{% if item.get_total_price %}
+								{{ item.get_total_price }} ₸
+							{% else %}
+								{{ item.total_price }} ₸
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<p class="fw-bold">Общая сумма: {{ total_price }} ₸</p>
+
+{% else %}
+	<div class="alert alert-info">Ваша корзина пуста.</div>
+{% endif %}
+
+{% endblock %}
