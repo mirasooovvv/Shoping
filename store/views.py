@@ -66,7 +66,7 @@ def about(request):
 def view_cart(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
 
-    items = cart.items.all()
+    items = CartItem.objects.filter(cart=cart)
 
     total_price = sum(item.get_total_price() for item in items)
 
@@ -94,3 +94,33 @@ def add_to_cart(request, product_id):
         cart_item.save()
 
     return redirect("view_cart")
+
+@login_required
+def remove_from_cart(request, product_id):
+    cart = Cart.objects.get(user=request.user)
+    try:
+        item = CartItem.objects.get(cart=cart, product_id=product_id)
+        item.delete()
+    except CartItem.DoesNotExist:
+        pass
+    return redirect('view_cart')
+
+@login_required
+def update_cart_item(request, product_id):
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+    item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
+    action = request.GET.get('action')  # было 'actions'
+
+    if action == "inc":
+        item.quantity += 1
+        item.save()
+    elif action == "dec":
+        item.quantity -= 1
+        if item.quantity <= 0:
+            item.delete()
+        else:
+            item.save()
+            
+    return redirect('view_cart')
+
+
