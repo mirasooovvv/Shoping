@@ -1,42 +1,109 @@
-{% load static %}
+{% extends 'base.html' %}
 
-<div class="container py-4">
-  <h3>Оплата товара</h3>
+{% block content %}
+<div class="payment-container">
+    <div class="payment-card">
+        <div class="icon-box">
+            <i class="fas fa-credit-card"></i>
+        </div>
+        
+        <h2>Подтверждение заказа</h2>
+        
+        {% if product %}
+            <p class="description">Вы покупаете: <strong>{{ product.name }}</strong></p>
+            <p class="price">{{ product.price }} RUB</p>
+        {% else %}
+            <p class="description">Оплата товаров в корзине</p>
+            <p class="price">{{ total_price }} RUB</p>
+        {% endif %}
 
-  {% if product %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">{{ product.name }}</h5>
-        <p class="card-text">Цена: {{ product.price }} ₸</p>
-        <a href="{{ confirmation_url }}" class="btn btn-success">Продолжить к оплате</a>
-      </div>
+        <hr>
+
+        <p class="info-text">Нажмите кнопку ниже, чтобы перейти к безопасной оплате картой или через СБП</p>
+
+        <a href="{{ confirmation_url }}" class="pay-button">
+            <div class="card-icons">
+                <img src="https://img.icons8.com/color/38/000000/visa.png" alt="Visa">
+                <img src="https://img.icons8.com/color/38/000000/mastercard.png" alt="Mastercard">
+                <img src="https://img.icons8.com/color/38/000000/mir.png" alt="Mir">
+            </div>
+            <span>Перейти к оплате</span>
+        </a>
+        
+        <div class="secure-badge">
+            <img src="https://img.icons8.com/ios-filled/20/000000/shield.png" alt="Shield">
+            Безопасный платеж через ЮKassa
+        </div>
     </div>
-  {% endif %}
-
-  {% if items %}
-    <h4>Товары для оплаты</h4>
-    <ul class="list-group mb-3">
-      {% for item in items %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>{{ item.product.name }}</strong>
-            <div class="text-muted">Кол-во: {{ item.quantity }}</div>
-          </div>
-          <div>
-            <span class="me-3">
-              {% if item.get_total_price %}
-                {{ item.get_total_price }} ₸
-              {% else %}
-                {{ item.total_price }} ₸
-              {% endif %}
-            </span>
-            <a href="{% url 'create_payment' item.product.id %}" class="btn btn-sm btn-outline-success">Оплатить</a>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-    <p class="fw-bold">Общая: {{ total_price }} ₸</p>
-    <a href="{% url 'create_payment_cart' %}" class="btn btn-primary">Оплатить всё</a>
-  {% endif %}
 </div>
 
+<style>
+    .payment-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        background-color: #f8f9fa;
+    }
+    .payment-card {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 450px;
+        width: 100%;
+    }
+    .icon-box {
+        font-size: 50px;
+        color: #007bff;
+        margin-bottom: 20px;
+    }
+    .price {
+        font-size: 32px;
+        font-weight: bold;
+        color: #28a745;
+        margin: 10px 0;
+    }
+    .description {
+        color: #6c757d;
+    }
+    .pay-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 20px;
+        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .pay-button:hover {
+        background-color: #0056b3;
+        transform: translateY(-5px);
+        color: white;
+    }
+    .card-icons {
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 5px 15px;
+        border-radius: 8px;
+    }
+    .pay-button span {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .secure-badge {
+        margin-top: 25px;
+        font-size: 14px;
+        color: #adb5bd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+</style>
+{% endblock %}

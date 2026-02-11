@@ -1,126 +1,128 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-
+from django.contrib import messages
 from .forms import RegisterForm, LoginForm
-from .models import Product, Order
-from .Cart import Cart, CartItem
+from .models import Product, Order, CartItem, Cart
 from yookassa import Configuration, Payment
 from django.conf import settings
 import uuid
 
+# Настройка YoKassa (глобальная)
 Configuration.account_id = settings.YOOKASSA_SHOP_ID
 Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
+# ---------- PAYMENT ----------
 
-# Configure Yookassa credentials properly so client selects correct auth type.
-secret = getattr(settings, 'YOOKASSA_SECRET_KEY', None) or getattr(settings, 'YOOKASSA_SHOP_KEY', None)
-auth_token = getattr(settings, 'YOOKASSA_AUTH_TOKEN', None)
-shop_id = getattr(settings, 'YOOKASSA_SHOP_ID', None)
 
-if auth_token:
-    Configuration.configure_auth_token(auth_token)
-elif shop_id and secret:
-    Configuration.configure(shop_id, secret)
-else:
-    raise RuntimeError('YOOKASSA credentials are not configured. Set YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY or YOOKASSA_AUTH_TOKEN in settings.')
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from yookassa import Payment
+from .models import Product, Order, Cart
+from django.conf import settings
+import uuid
 
+# Конфигурация YoKassa API
+from yookassa import Configuration
+Configuration.account_id = settings.YOOKASSA_SHOP_ID
+Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
+
+# Функция для создания платежа для отдельного продукта
 def create_payment(request, product_id):
-    product = Product.objects.get(id=product_id)
+    # Получаем продукт из базы данных
+    product = get_object_or_404(Product, id=product_id)
+    idempotence_key = str(uuid.uuid4())  # Генерация уникального idempotence_key
 
-    payment = Payment.create({
-        "amount": {
-            "value": str(product.price),
-            "currency": "KZT"
-        },
-        "confirmation": {
-        "type": "redirect",
-        "return_url": "http://127.0.0.1:8000/payment-success/"
-        },
-        "capture": True,
-        "description": f"Оплата {product.name}"
-    }, str(uuid.uuid4()))  # обязательно str(uuid4())
+    try:
+        # Создаем данные для платежа
+        payment_data = {
+            "amount": {
+                "value": str(product.price),  # Цена продукта
+                "currency": "RUB"  # Убедитесь, что валюта правильная
+            },
+            "confirmation": {
+                "type": "redirect",  # Способ подтверждения
+                "return_url": request.build_absolute_uri('/payment-success/')  # URL возврата
+            },
+            "capture": True,  # Убедитесь, что захват средств разрешен
+            "description": f"Оплата {product.name}"  # Описание платежа
+        }
 
-    payment_id = payment.id  # берём id платежа
-    Order.objects.create(
-        Product=product,
-        payment_id=payment_id,
-        status="pending"
-    )
+        # Создаем платеж, передавая только два аргумента
+        payment = Payment.create(payment_data, idempotence_key)
 
-    # Render a confirmation page with continuation button instead of immediate redirect.
-    return render(request, 'create_payment.html', {
-        'confirmation_url': payment.confirmation.confirmation_url,
-        'product': product,
-    })
+        # Создаем заказ с состоянием "pending"
+        Order.objects.create(
+            product=product,
+            payment_id=payment.id,
+            status="pending"
+        )
 
-def payment_success(request):
-    return render(request, "payment_success.html")
+        # Перенаправляем пользователя на страницу подтверждения платежа (ЮKassa)
+        return redirect(payment.confirmation.confirmation_url)
 
-
+    except Exception as e:
+        # Обработка ошибок
+        print(f"--- ОШИБКА ЮKASSA: {e} ---")
+        messages.error(request, f"Ошибка платежной системы: {e}")
+        return redirect('product_detail', product_id=product.id)
+    
+# Функция для создания платежа по корзине товаров
 def create_payment_cart(request):
-    """Create a payment for all items in the user's cart (or session cart)."""
-    # Gather items and calculate total
-    items = []
+    items_to_save = []
     total = 0
 
     if request.user.is_authenticated:
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_items = cart.items.all()
-        for it in cart_items:
-            items.append(it)
-            total += int(it.get_total_price())
+        for item in cart.items.all():
+            items_to_save.append(item.product)
+            total += item.get_total_price()
     else:
         session_cart = request.session.get('cart', {})
         for pid, qty in session_cart.items():
-            try:
-                product = Product.objects.get(id=pid)
-            except Product.DoesNotExist:
-                continue
-            total_price = int(product.price) * qty
-            items.append({
-                'product': product,
-                'quantity': qty,
-                'total_price': total_price,
-            })
-            total += total_price
+            product = Product.objects.filter(id=pid).first()
+            if product:
+                items_to_save.append(product)
+                total += product.price * qty
 
     if total == 0:
+        messages.warning(request, "Ваша корзина пуста.")
         return redirect('view_cart')
 
-    payment = Payment.create({
-        "amount": {
-            "value": str(total),
-            "currency": "KZT"
-        },
-        "confirmation": {
-            "type": "redirect",
-            "return_url": "http://127.0.0.1:8000/payment-success/"
-        },
-        "capture": True,
-        "description": "Оплата корзины"
-    }, str(uuid.uuid4()))
+    try:
+        # Создание платежа с правильными данными
+        payment_data = {
+            "amount": { 
+                "value": str(total),  # Общая сумма
+                "currency": "RUB"  # Убедитесь, что используете правильную валюту
+            },
+            "confirmation": {
+                "type": "redirect",
+                "return_url": "http://127.0.0.1:8000/payment-success/"
+            },
+            "capture": True,
+            "description": "Оплата корзины"
+        }
 
-    payment_id = payment.id
+        # Создаем платеж, передавая только два аргумента
+        payment = Payment.create(payment_data, str(uuid.uuid4()))
 
-    # create Order rows for each product in the cart
-    for it in items:
-        if isinstance(it, dict):
-            product = it['product']
-        else:
-            product = it.product
+        # Создание заказов для каждого продукта в корзине
+        for product in items_to_save:
+            Order.objects.create(product=product, payment_id=payment.id, status='pending')
 
-        Order.objects.create(
-            Product=product,
-            payment_id=payment_id,
-            status='pending'
-        )
+        # Перенаправляем пользователя на страницу подтверждения платежа
+        return redirect(payment.confirmation.confirmation_url)
 
-    return render(request, 'create_payment.html', {
-        'confirmation_url': payment.confirmation.confirmation_url,
-        'items': items,
-        'total_price': total,
-    })
+    except Exception as e:
+        # Если произошла ошибка, показываем сообщение об ошибке
+        messages.error(request, f"Ошибка оплаты корзины: {e}")
+        return redirect('view_cart')
+
+
+# Функция для успешной оплаты
+def payment_success(request):
+    return render(request, "payment_success.html")
 
 # ---------- AUTH ----------
 
@@ -128,52 +130,47 @@ def register_view(request):
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect("login")
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Вы успешно зарегистрированы!")
+            return redirect("product_list")
+        else:
+            messages.error(request, "Пожалуйста, исправьте ошибки в форме.")
     else:
         form = RegisterForm()
-
     return render(request, "accounts/register.html", {"form": form})
-
-
 
 def login_view(request):
     if request.method == "POST":
-        form = LoginForm(request, data=request.POST)
+        form = LoginForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
+            messages.success(request, "Вы успешно вошли!")
             return redirect("product_list")
+        else:
+            messages.error(request, "Неверное имя пользователя или пароль.")
     else:
         form = LoginForm()
-
     return render(request, "accounts/login.html", {"form": form})
-
 
 def logout_view(request):
     logout(request)
+    messages.success(request, "Вы успешно вышли!")
     return redirect("login")
-
 
 # ---------- STORE ----------
 
 def product_list(request):
     products = Product.objects.all()
-    return render(request, "store/product_list.html", {
-        "products": products
-    })
-
+    return render(request, "store/product_list.html", {"products": products})
 
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    return render(request, "store/product_detail.html", {
-        "product": product
-    })
-
+    return render(request, "store/product_detail.html", {"product": product})
 
 def about(request):
     return render(request, "store/about.html")
-
 
 # ---------- CART ----------
 
@@ -182,13 +179,6 @@ def view_cart(request):
         cart, created = Cart.objects.get_or_create(user=request.user)
         items = cart.items.all()
         total_price = sum(item.get_total_price() for item in items)
-
-<<<<<<< HEAD
-        return render(request, "cart/cart.html", {
-            "cart": cart,
-            "items": items,
-            "total_price": total_price,
-        })
     else:
         session_cart = request.session.get('cart', {})
         items = []
@@ -196,101 +186,43 @@ def view_cart(request):
         for pid, qty in session_cart.items():
             try:
                 product = Product.objects.get(id=pid)
+                total = product.price * qty
+                items.append({'product': product, 'quantity': qty, 'total_price': total})
+                total_price += total
             except Product.DoesNotExist:
                 continue
-            total = int(product.price) * qty
-            items.append({
-                'product': product,
-                'quantity': qty,
-                'total_price': total,
-            })
-            total_price += total
-=======
-    items = CartItem.objects.filter(cart=cart)
->>>>>>> 3e8f6cde7d8fabcbdaea845680eb15ab5cba5f58
-
-        return render(request, "cart/cart.html", {
-            "cart": None,
-            "items": items,
-            "total_price": total_price,
-        })
-
+    
+    return render(request, "cart/cart.html", {
+        "items": items, 
+        "total_price": total_price
+    })
 
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-
     if request.user.is_authenticated:
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-            defaults={"quantity": 1}
-        )
-
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, defaults={"quantity": 1})
         if not created:
             cart_item.quantity += 1
             cart_item.save()
     else:
         cart = request.session.get('cart', {})
-        key = str(product_id)
+        key = str(product.id)
         cart[key] = cart.get(key, 0) + 1
         request.session['cart'] = cart
-
     return redirect("view_cart")
 
-<<<<<<< HEAD
-
-def cart_sidebar(request):
-    """Return cart HTML fragment for offcanvas sidebar."""
-    if request.user.is_authenticated:
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        items = cart.items.all()
-        total_price = sum(item.get_total_price() for item in items)
-        # Provide items as CartItem objects for the template
-        context = {
-            'items': items,
-            'total_price': total_price,
-        }
-    else:
-        session_cart = request.session.get('cart', {})
-        items = []
-        total_price = 0
-        for pid, qty in session_cart.items():
-            try:
-                product = Product.objects.get(id=pid)
-            except Product.DoesNotExist:
-                continue
-            total = int(product.price) * qty
-            items.append({
-                'product': product,
-                'quantity': qty,
-                'total_price': total,
-            })
-            total_price += total
-
-        context = {
-            'items': items,
-            'total_price': total_price,
-        }
-
-    return render(request, 'cart/_cart_sidebar.html', context)
-=======
 @login_required
 def remove_from_cart(request, product_id):
     cart = Cart.objects.get(user=request.user)
-    try:
-        item = CartItem.objects.get(cart=cart, product_id=product_id)
-        item.delete()
-    except CartItem.DoesNotExist:
-        pass
+    CartItem.objects.filter(cart=cart, product_id=product_id).delete()
     return redirect('view_cart')
 
 @login_required
 def update_cart_item(request, product_id):
     cart, _ = Cart.objects.get_or_create(user=request.user)
     item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
-    action = request.GET.get('action')  # было 'actions'
-
+    action = request.GET.get('action')
     if action == "inc":
         item.quantity += 1
         item.save()
@@ -300,8 +232,13 @@ def update_cart_item(request, product_id):
             item.delete()
         else:
             item.save()
-            
     return redirect('view_cart')
 
-
->>>>>>> 3e8f6cde7d8fabcbdaea845680eb15ab5cba5f58
+def cart_sidebar(request):
+    items = []
+    total_price = 0
+    if request.user.is_authenticated:
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        items = cart.items.all()
+        total_price = sum(i.get_total_price() for i in items)
+    return render(request, 'cart/_cart_sidebar.html', {'items': items, 'total_price': total_price})
